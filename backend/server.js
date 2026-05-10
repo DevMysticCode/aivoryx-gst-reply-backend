@@ -332,13 +332,14 @@ app.get('/api/profile', async (req, res) => {
   }
 
   try {
+    // Upsert — create user record if first visit (Railway DB is fresh)
     const userResult = await pool.query(
-      'SELECT id, email, credits_remaining, created_at FROM users WHERE email = $1',
+      `INSERT INTO users (email, credits_remaining)
+       VALUES ($1, 5)
+       ON CONFLICT (email) DO UPDATE SET email = EXCLUDED.email
+       RETURNING id, email, credits_remaining, created_at`,
       [email],
     )
-    if (userResult.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found.' })
-    }
     const user = userResult.rows[0]
 
     const noticesResult = await pool.query(
